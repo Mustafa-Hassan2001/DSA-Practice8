@@ -1,0 +1,445 @@
+<?php
+
+if ( ! function_exists( 'herr_child_theme_enqueue_scripts' ) ) {
+	/**
+	 * Function that enqueue theme's child style
+	 */
+	function herr_child_theme_enqueue_scripts() {
+		$main_style = 'herr-main';
+
+		wp_enqueue_style( 'herr-child-style', get_stylesheet_directory_uri() . '/style.css', array( $main_style ) );
+	}
+
+	add_action( 'wp_enqueue_scripts', 'herr_child_theme_enqueue_scripts' );
+}
+
+
+
+
+function custom_excerpt_length( $length ) {
+    return 2000;
+}
+add_filter( 'excerpt_length', 'custom_excerpt_length', 9999 );
+
+
+//Single post navigation
+function qodef_single_post_navigation_shortcode() {
+    ob_start();
+
+        $through_same_category = 'yes' === herr_core_get_post_value_through_levels( 'qodef_blog_single_post_navigation_through_same_category' );
+        $navigation_type       = herr_core_get_post_value_through_levels( 'qodef_blog_single_post_navigation_type' );
+
+        $holder_classes[] = 'qodef-m';
+        $holder_classes[] = 'qodef-single-navigation--' . $navigation_type;
+        $holder_classes   = implode( ' ', $holder_classes );
+        ?>
+        <div id="qodef-single-post-navigation" <?php qode_framework_class_attribute( $holder_classes ); ?>>
+            <div class="qodef-m-inner">
+                <?php
+                $post_navigation = array(
+                    'prev' => array(
+                        'label' => '<span class="qodef-m-nav-label">' . esc_html__( 'Prev post', 'herr-core' ) . '</span>',
+                        'icon'  => herr_core_get_svg_icon( 'pagination-arrow-left', 'qodef-m-pagination-icon' ),
+                    ),
+                    'next' => array(
+                        'label' => '<span class="qodef-m-nav-label">' . esc_html__( 'Next post', 'herr-core' ) . '</span>',
+                        'icon'  => herr_core_get_svg_icon( 'pagination-arrow-right', 'qodef-m-pagination-icon' ),
+                    ),
+                );
+
+                if ( $through_same_category ) {
+                    if ( '' !== get_previous_post( true ) ) {
+                        $post_navigation['prev']['post'] = get_previous_post( true );
+                    }
+                    if ( '' !== get_next_post( true ) ) {
+                        $post_navigation['next']['post'] = get_next_post( true );
+                    }
+                } else {
+                    if ( '' !== get_previous_post() ) {
+                        $post_navigation['prev']['post'] = get_previous_post();
+                    }
+                    if ( '' !== get_next_post() ) {
+                        $post_navigation['next']['post'] = get_next_post();
+                    }
+                }
+
+                foreach ( $post_navigation as $key => $value ) {
+                    if ( isset( $post_navigation[ $key ]['post'] ) ) {
+                        $current_post = $value['post'];
+                        $post_id      = $current_post->ID;
+                        $post_title   = $current_post->post_title;
+                        ?>
+                        <a itemprop="url" class="qodef-m-nav qodef--<?php echo esc_attr( $key ); ?>" href="<?php echo get_permalink( $post_id ); ?>">
+                            <?php if( $navigation_type !== 'side' ) : ?>
+                                <?php echo qode_framework_wp_kses_html( 'svg', $value['icon'] ); ?>
+                                <?php echo wp_kses( $value['label'], array( 'span' => array( 'class' => true ) ) ); ?>
+                            <?php else : ?>
+                                <span class="qodef-m-nav-top">
+                                    <?php echo wp_kses( $value['label'], array( 'span' => array( 'class' => true ) ) ); ?>
+                                </span>
+                                <div class="qodef-m-nav-bottom">
+                                    <div class="qodef-e-image"><?php echo get_the_post_thumbnail( $post_id, 'thumbnail' ); ?></div>
+                                    <div class="qodef-m-nav-content-inner">
+                                        <span class="qodef-m-date"><?php echo get_the_date( get_option( 'date_format' ), $post_id ); ?></span>
+                                        <span class="qodef-m-title"><?php echo wp_kses_post( $post_title ); ?></span>
+                                        <?php herr_core_render_svg_icon( 'arrow' ); ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </a>
+                        <?php
+                    }
+                }
+                ?>
+            </div>
+        </div>
+        <?php
+    
+
+    return ob_get_clean();
+}
+add_shortcode( 'single_post_navigation', 'qodef_single_post_navigation_shortcode' );
+
+
+
+
+
+
+//Filter Tab on event page
+function archive_posts_shortcode() {
+    ob_start();
+    ?>
+    <div id="archive-posts">
+		<div class="filter-content">
+        <select id="archive-year">
+            <option value="">Select Year</option>
+            <?php
+            $year_args = array(
+                'post_type' => 'post',
+                'category_name' => 'events',
+                'posts_per_page' => -1,
+                'fields' => 'ids',
+            );
+            $years = get_posts($year_args);
+            $years = array_unique(array_map(function($year) {
+                return get_post_time('Y', false, $year);
+            }, $years));
+
+            foreach ($years as $year) {
+                echo '<option value="' . $year . '">' . $year . '</option>';
+            }
+            ?>
+        </select>
+		
+        <select id="archive-month">
+            <option value="">Select Month</option>
+        </select>
+
+        <button id="archive-filter">Filter</button>
+		</div>
+        <div id="archive-posts-results">
+			
+		<?php  $shortcode = '[herr_core_layout custom_class="past-sensi-events" layout_title_tag="h5" columns="4" children="%5B%5D" posts_per_page="8" tax_slug="events" layout="layout-style-11" text_transform="capitalize" title_tag="h5" additional_params="tax" pagination_type="standard" _css_classes="all-post" behavior="columns" orderby="date" order="DESC" tax="category" images_proportion="full" _transform_keep_proportions="yes" _transform_keep_proportions_hover="yes"]';
+    
+    echo do_shortcode($shortcode); ?>
+		</div>
+    </div>
+
+    <script>
+        jQuery(document).ready(function($) {
+            $('#archive-filter').click(function() {
+                var year = $('#archive-year').val();
+                var month = $('#archive-month').val();
+                var data = {
+                    action: 'get_archive_posts',
+                    year: year,
+                    month: month
+                };
+
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', data, function(response) {
+                    $('#archive-posts-results').html(response);
+                });
+            });
+
+            $('#archive-year').change(function() {
+                var year = $(this).val();
+                var data = {
+                    action: 'get_archive_months',
+                    year: year
+                };
+
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', data, function(response) {
+                    $('#archive-month').html(response);
+                });
+            });
+        });
+    </script>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('archive_posts', 'archive_posts_shortcode');
+
+function get_archive_months_callback() {
+    if (!empty($_POST['year'])) {
+        $year = intval($_POST['year']);
+        $month_args = array(
+            'post_type' => 'post',
+            'category_name' => 'events',
+            'posts_per_page' => -1,
+            'date_query' => array(
+                array(
+                    'year' => $year,
+                ),
+            ),
+            'fields' => 'ids',
+        );
+        $months = get_posts($month_args);
+        $months = array_unique(array_map(function($month) {
+            return get_post_time('m', false, $month);
+        }, $months));
+
+        ob_start();
+        foreach ($months as $month) {
+            $month_name = date('F', mktime(0, 0, 0, $month, 1));
+            echo '<option value="' . $month . '">' . $month_name . '</option>';
+        }
+        $response = ob_get_clean();
+    } else {
+        $response = '<option value="">Select Month</option>';
+    }
+
+    echo $response;
+    die();
+}
+add_action('wp_ajax_get_archive_months', 'get_archive_months_callback');
+add_action('wp_ajax_nopriv_get_archive_months', 'get_archive_months_callback');
+
+function get_archive_posts_callback() {
+    if (!empty($_POST['year']) && !empty($_POST['month'])) {
+        $year = intval($_POST['year']);
+        $month = $_POST['month'];
+        $posts_args = array(
+            'post_type' => 'post',
+            'category_name' => 'events',
+            'posts_per_page' => -1,
+            'date_query' => array(
+                array(
+                    'year' => $year,
+                    'month' => $month,
+                ),
+            ),
+        );
+        $posts = new WP_Query($posts_args);
+
+        if ($posts->have_posts()) {
+			echo '<div class="custom-query-wrapper">';
+            while ($posts->have_posts()) {
+                $posts->the_post();
+                  // Display your post content here
+				// Get post data
+				$post_id = get_the_ID();
+				$post_title = get_the_title();
+				$post_permalink = get_permalink();
+				$post_thumbnail = get_the_post_thumbnail($post_id, 'large');
+				$post_category = get_the_category($post_id);
+				$post_author = get_the_author();
+				$post_author_link = get_author_posts_url(get_the_author_meta('ID'));
+				
+				echo '<div class="custom-query-content">';
+				echo '<a href="' . $post_permalink . '">' . $post_thumbnail . '</a>';
+				echo '<p class="custom-query-category"><a href="' . get_category_link($post_category[0]->term_id) . '">' . $post_category[0]->name . '</a> / <a href="' . $post_author_link . '">' . $post_author . '</a> </p>';
+               	echo '<h5><a href="' . $post_permalink . '">' . get_the_title() . '</a></h5>';
+				echo '</div>';
+            }
+			 echo '</div>';
+        } else {
+            echo 'No posts found.';
+        }
+
+        wp_reset_postdata();
+    } else {
+        		$shortcode = '[herr_core_layout custom_class="past-sensi-events" layout_title_tag="h5" columns="4" children="%5B%5D" posts_per_page="8" tax_slug="events" layout="layout-style-11" text_transform="capitalize" title_tag="h5" additional_params="tax" pagination_type="standard" _css_classes="all-post" behavior="columns" orderby="date" order="DESC" tax="category" images_proportion="full" _transform_keep_proportions="yes" _transform_keep_proportions_hover="yes"]';
+    
+    echo do_shortcode($shortcode);
+    }
+
+    die();
+}
+add_action('wp_ajax_get_archive_posts', 'get_archive_posts_callback');
+add_action('wp_ajax_nopriv_get_archive_posts', 'get_archive_posts_callback');
+
+
+
+
+//WP EVENT MANAGER Plugin Customization
+//Change Text from '' to 'sensi community'
+function customize_event_listing_category_labels( $args ) {
+	$plural = 'Sensi Community';
+	$singular = 'Sensi Community';
+	$args['labels']['name'] = $plural;
+	$args['labels']['singular_name'] = $singular;
+	$args['labels']['menu_name'] = ucwords( $plural );
+	$args['labels']['search_items'] = sprintf( wp_kses( 'Search %s', 'wp-event-manager' ), $plural );
+	$args['labels']['all_items'] = sprintf( wp_kses( 'All %s', 'wp-event-manager' ), $plural );
+	$args['labels']['parent_item'] = sprintf( wp_kses( 'Parent %s', 'wp-event-manager' ), $singular );
+	$args['labels']['parent_item_colon'] = sprintf( wp_kses( 'Parent %s:', 'wp-event-manager' ),$singular );
+	$args['labels']['edit_item'] = sprintf( wp_kses( 'Edit %s', 'wp-event-manager' ), $singular );
+	$args['labels']['update_item'] = sprintf( wp_kses( 'Update %s', 'wp-event-manager' ), $singular );
+	$args['labels']['add_new_item'] = sprintf( wp_kses( 'Add New %s', 'wp-event-manager' ), $singular );
+	$args['labels']['new_item_name'] = sprintf( wp_kses( 'New %s Name', 'wp-event-manager' ), $singular );
+	return $args;
+}
+add_filter( 'register_taxonomy_event_listing_category_args', 'customize_event_listing_category_labels' );
+
+
+//WP Event Manger - Plugin - Change Text from '' to 'Is this event...'
+function customize_event_listing_type_args( $args ) {
+	$plural = 'Is this event cannabis friendly?';
+	$singular = 'Is this event cannabis friendly?';
+	$args['labels']['name'] = $plural;
+	$args['labels']['singular_name'] = $singular;
+	$args['labels']['menu_name'] = ucwords( $plural );
+	$args['labels']['search_items'] = sprintf( wp_kses( 'Search %s', 'wp-event-manager' ), $plural );
+	$args['labels']['all_items'] = sprintf( wp_kses( 'All %s', 'wp-event-manager' ), $plural );
+	$args['labels']['parent_item'] = sprintf( wp_kses( 'Parent %s', 'wp-event-manager' ), $singular );
+	$args['labels']['parent_item_colon'] = sprintf( wp_kses( 'Parent %s:', 'wp-event-manager' ),$singular );
+	$args['labels']['edit_item'] = sprintf( wp_kses( 'Edit %s', 'wp-event-manager' ), $singular );
+	$args['labels']['update_item'] = sprintf( wp_kses( 'Update %s', 'wp-event-manager' ), $singular );
+	$args['labels']['add_new_item'] = sprintf( wp_kses( 'Add New %s', 'wp-event-manager' ), $singular );
+	$args['labels']['new_item_name'] = sprintf( wp_kses( 'New %s Name', 'wp-event-manager' ), $singular );
+	return $args;
+}
+add_filter( 'register_taxonomy_event_listing_type_args', 'customize_event_listing_type_args' );
+
+
+//WP Event Manger - Plugin - Social Media Buttons In Single Event Page
+function custom_add_social_share_buttons() {
+    ?>
+	<div class="custom-add-social-share-buttons">
+    <div class="wpem-social-icon wpem-facebook">
+        <a href="https://www.facebook.com/sharer/sharer.php?u=<?php display_event_permalink(); ?>" title="Share this page on Facebook"><?php _e('Facebook', 'wp-event-manager'); ?></a>
+    </div>
+    <div class="wpem-social-icon wpem-twitter">
+        <a href="https://twitter.com/share?text=twitter&url=<?php display_event_permalink(); ?>" title="Share this page on Twitter"><?php _e('Twitter', 'wp-event-manager'); ?></a>
+    </div>
+    <div class="wpem-social-icon wpem-linkedin">
+        <a href="https://www.linkedin.com/sharing/share-offsite/?&url=<?php display_event_permalink(); ?>" title="Share this page on Linkedin"><?php _e('Linkedin', 'wp-event-manager'); ?></a>
+    </div>
+	</div>
+    <?php
+}
+add_action('single_event_listing_social_share_start' , 'custom_add_social_share_buttons');
+
+
+//WP Event Manger - Plugin - If there is not event - NOTE: This are also set from jQuery
+function customize_events_no_results() {
+	?>
+	<div class="customize-events-no-results">
+		<div class="no_event_listings_found wpem-alert wpem-alert-danger wpem-mb-0"><?php _e('There are currently no events...', 'wp-event-manager'); ?></div>
+	</div>
+	<?php
+}
+add_action('event_manager_output_events_no_results','customize_events_no_results');
+
+
+//WP Event Manger - Plugin - Registration Button 
+function customize_event_registration_start($register) {
+	?>
+	<div class="customize-event-registration">
+		<div class="wpem-event-sidebar-button wpem-registration-event-button">
+			 <a href="<?php echo esc_url( $register->url );?>" class="wpem-theme-button" target="_blank" rel="nofollow">Register for event</a>  
+		</div>
+	</div>
+	<?php
+}
+add_action('event_registration_end','customize_event_registration_start', $register );
+
+
+// Envira Feature & Title shortcode modified
+function get_envira_featured_image_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'post_id' => null,
+    ), $atts, 'envira_featured_image');
+
+    $post_id = $atts['post_id'];
+
+    if ($post_id) {
+        $image_url = get_the_post_thumbnail_url($post_id, 'large');
+		$title = get_the_title($post_id);
+        if ($image_url) {
+               $output .= '<img src="' . $image_url . '" alt="" />';
+               $output .= '<h4 class="envira-title">' . $title . '</h4>';
+			return $output;
+        } else {
+            return 'Featured image not found.';
+        }
+    } else {
+        return 'Invalid post ID.';
+    }
+}
+add_shortcode('envira_featured_image', 'get_envira_featured_image_shortcode');
+
+
+// Add Shortcode
+function custom_shortcode_for_excerpt() {
+    // Check if the post has an excerpt
+    if (has_excerpt()) {
+        return get_the_excerpt();
+    } else {
+        return ''; // Return an empty string if there's no excerpt
+    }
+}
+add_shortcode('custom_excerpt', 'custom_shortcode_for_excerpt');
+
+
+
+// Add auto ALT Text to images
+function add_auto_alt_text_to_images($attr, $attachment) {
+    // Check if the alt text is already set
+    if (empty($attr['alt'])) {
+        // Get post title
+        $title = get_post_field('post_title', $attachment->ID);
+
+        $attr['alt'] = $title;
+        $attr['title'] = $title;
+    }
+
+    return $attr;
+}
+add_filter('wp_get_attachment_image_attributes', 'add_auto_alt_text_to_images', 10, 2);
+
+
+
+// Password Protection Filter
+add_filter( 'the_password_form', 'custom_password_form_with_message' );
+
+function custom_password_form_with_message( $form ) {
+	global $post;
+	$o = '<h2 class="password-protection-cust-heading">Password Protected</h2>'; 
+	$o .= '<form action="' . esc_url( site_url( 'wp-login.php?action=postpass', 'login_post' ) ) . '" method="post" class="password-protection-cust">
+		' . __( "Please use the password provided by your Market Director or Media Sales Executive to access any applicable support sections." ) . '
+		<label for="password">' . __( "Password:" ) . ' </label><input name="post_password" id="password" type="password" size="20" placeholder="Password" required/>
+		<input type="submit" name="Submit" value="' . esc_attr__( "Submit" ) . '" />
+	';
+
+	// Check if the password was submitted and show a custom message if it is wrong
+	if (isset($_COOKIE['wp-postpass_' . COOKIEHASH]) && wp_get_raw_referer() == get_permalink()) {
+		$msg = esc_html__( 'Incorrect Password.', 'https://sensimag.com/' );
+		$o .= "<p class='custom-password-message'>$msg</p>";
+	}
+	$o .= '</form>';
+	return $o;
+}
+
+
+
+
+// function wp_exclude_author($query) {
+//  if ($query->is_feed) {
+//    $query->set('author','-1'); //Author ID
+//  }
+// return $query;
+// }
+
+// add_filter('pre_get_posts','wp_exclude_author');
+
